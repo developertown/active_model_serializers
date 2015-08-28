@@ -101,7 +101,9 @@ module ActiveModel
       elsif resource.respond_to?(:to_ary)
         config.array_serializer
       else
-        options.fetch(:serializer, get_serializer_for(resource.class))
+        ### DT / AJL: Pass the options when getting the serializer
+        options.fetch(:serializer, get_serializer_for(resource.class, options))
+        ### DT / AJL
       end
     end
 
@@ -189,9 +191,12 @@ module ActiveModel
 
     attr_reader :options
 
-    def self.get_serializer_for(klass)
-      serializers_cache.fetch_or_store(klass) do
-        serializer_class_name = "#{klass.name}Serializer"
+    ### DT / AJL: Accept the options to retrieve a namespace when getting the serializer
+    def self.get_serializer_for(klass, options = {})
+      namespace = options.fetch(:namespace, nil)
+      klass_name = namespace ? "#{namespace.to_s.classify}::#{klass.name}" : klass.name
+      serializers_cache.fetch_or_store(klass_name) do
+        serializer_class_name = "#{klass_name}Serializer"
         serializer_class = serializer_class_name.safe_constantize
 
         if serializer_class
@@ -201,5 +206,6 @@ module ActiveModel
         end
       end
     end
+    ### DT / AJL
   end
 end

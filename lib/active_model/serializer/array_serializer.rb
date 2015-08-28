@@ -13,7 +13,9 @@ module ActiveModel
         @objects  = objects.map do |object|
           serializer_class = options.fetch(
             :serializer,
-            ActiveModel::Serializer.serializer_for(object)
+            ### DT / AJL: Include the options when retrieving the serializer
+            ActiveModel::Serializer.serializer_for(object, options)
+            ### DT / AJL
           )
 
           if serializer_class.nil?

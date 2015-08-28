@@ -20,6 +20,15 @@ module ActionController
     end
 
     def get_serializer(resource, options = {})
+
+      ### DT / AJL: Default namespace to controller namespace unless one was provided
+      unless options.has_key? :namespace
+        if self.class.parent != Object
+          options[:namespace] = self.class.parent
+        end
+      end
+      ### DT / AJL
+
       if ! use_adapter?
         warn "ActionController::Serialization#use_adapter? has been removed. "\
           "Please pass 'adapter: false' or see ActiveSupport::SerializableResource#serialize"

@@ -54,7 +54,9 @@ module ActiveModel
       @serializer ||=
         begin
           @serializer = serializer_opts.delete(:serializer)
-          @serializer ||= ActiveModel::Serializer.serializer_for(resource)
+          ### DT / AJL: Include the serializer_opts when getting the serializer
+          @serializer ||= ActiveModel::Serializer.serializer_for(resource, serializer_opts)
+          ### DT / AJL
 
           if serializer_opts.key?(:each_serializer)
             serializer_opts[:serializer] = serializer_opts.delete(:each_serializer)

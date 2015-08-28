@@ -42,7 +42,9 @@ module ActiveModel
       def build_association(subject, parent_serializer_options)
         association_value = subject.send(name)
         reflection_options = options.dup
-        serializer_class = ActiveModel::Serializer.serializer_for(association_value, reflection_options)
+        ### DT / AJL: Merge the parent_serializer_options with the reflection_options
+        serializer_class = ActiveModel::Serializer.serializer_for(association_value, parent_serializer_options.merge(reflection_options))
+        ### DT / AJL
 
         if serializer_class
           begin
@@ -67,7 +69,9 @@ module ActiveModel
 
         serializer_options = parent_serializer_options.except(:serializer)
         serializer_options[:serializer] = serializer if serializer
-        serializer_options
+        ### DT / AJL: Merge the serializer_options with the reflection_options
+        serializer_options.merge(reflection_options.except(:serializer))
+        ### DT / AJL
       end
     end
   end
