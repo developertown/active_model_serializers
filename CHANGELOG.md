@@ -1,13 +1,19 @@
-### 0.10.0
+## Dev
 
-  * adds adapters pattern
-  * adds support for `meta` and `meta_key` [@kurko]
-  * adds method to override association [@kurko]
-  * adds `has_one` attribute for backwards compatibility [@ggordon]
-  * adds JSON API support 1.0 [@benedikt]
-  * adds fragment cache support [@joaomdmoura]
-  * adds cache support to attributes and associations [@joaomdmoura]
-  * uses model name to determine the type [@lsylvester]
-  * remove root key option and split JSON adapter [@joaomdmoura]
-  * adds FlattenJSON as default adapter [@joaomdmoura]
-  * adds support for `pagination links` at top level of JsonApi adapter [@bacarini]
+### [master (unreleased)](https://github.com/rails-api/active_model_serializers/compare/master..dev)
+
+Breaking changes:
+
+Features:
+
+Fixes:
+
+Misc:
+
+## [0.10.x](CHANGELOG-0-10.md)
+
+## [0.09.x](CHANGELOG-0-09.md)
+
+## [0.08.x](CHANGELOG-0-08.md)
+
+## [Prehistory](CHANGELOG-prehistory.md)

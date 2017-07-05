@@ -1,348 +1,69 @@
-# ActiveModel::Serializer
+# ActiveModelSerializers
 
-[![Build Status](https://travis-ci.org/rails-api/active_model_serializers.svg)](https://travis-ci.org/rails-api/active_model_serializers)
-
-_Windows Build Status -_ ![Build Status](https://ci.appveyor.com/api/projects/status/1dly7uj4l69bchmu)
-
-ActiveModel::Serializer brings convention over configuration to your JSON generation.
-
-AMS does this through two components: **serializers** and **adapters**.
-Serializers describe _which_ attributes and relationships should be serialized.
-Adapters describe _how_ attributes and relationships should be serialized.
-
-By default AMS will use the **Flatten Json Adapter**. But we strongly advise you to use **JsonApi Adapter** that follows 1.0 of the format specified in [jsonapi.org/format](http://jsonapi.org/format).
-Check how to change the adapter in the sections bellow.
-
-# RELEASE CANDIDATE, PLEASE READ
-
-This is the master branch of AMS. It will become the `0.10.0` release when it's
-ready. Currently this is a release candidate. This is **not** backward
-compatible with `0.9.0` or `0.8.0`.
-
-`0.10.x` will be based on the `0.8.0` code, but with a more flexible
-architecture. We'd love your help. [Learn how you can help here.](https://github.com/rails-api/active_model_serializers/blob/master/CONTRIBUTING.md)
-
-## Example
-
-Given two models, a `Post(title: string, body: text)` and a
-`Comment(name: string, body: text, post_id: integer)`, you will have two
-serializers:
-
-```ruby
-class PostSerializer < ActiveModel::Serializer
-  cache key: 'posts', expires_in: 3.hours
-  attributes :title, :body
-
-  has_many :comments
-
-  url :post
-end
-```
-
-and
-
-```ruby
-class CommentSerializer < ActiveModel::Serializer
-  attributes :name, :body
-
-  belongs_to :post
-
-  url [:post, :comment]
-end
-```
-
-Generally speaking, you as a user of AMS will write (or generate) these
-serializer classes. If you want to use a different adapter, such as a JsonApi, you can
-change this in an initializer:
-
-```ruby
-ActiveModel::Serializer.config.adapter = ActiveModel::Serializer::Adapter::JsonApi
-```
-
-or
-
-```ruby
-ActiveModel::Serializer.config.adapter = :json_api
-```
-
-You won't need to implement an adapter unless you wish to use a new format or
-media type with AMS.
-
-If you want to have a root key on your responses you should use the Json adapter, instead of the default FlattenJson:
-
-```ruby
-ActiveModel::Serializer.config.adapter = :json
-```
-
-If you would like the key in the outputted JSON to be different from its name in ActiveRecord, you can use the :key option to customize it:
-
-```ruby
-class PostSerializer < ActiveModel::Serializer
-  attributes :id, :body
-
-  # look up :subject on the model, but use +title+ in the JSON
-  attribute :subject, :key => :title
-  has_many :comments
-end
-```
-
-In your controllers, when you use `render :json`, Rails will now first search
-for a serializer for the object and use it if available.
-
-```ruby
-class PostsController < ApplicationController
-  def show
-    @post = Post.find(params[:id])
-
-    render json: @post
-  end
-end
-```
-
-In this case, Rails will look for a serializer named `PostSerializer`, and if
-it exists, use it to serialize the `Post`.
-
-### Specify a serializer
-
-If you wish to use a serializer other than the default, you can explicitly pass it to the renderer.
-
-#### 1. For a resource:
-
-```ruby
-  render json: @post, serializer: PostPreviewSerializer
-```
-
-#### 2. For an array resource:
-
-```ruby
-# Use the default `ArraySerializer`, which will use `each_serializer` to
-# serialize each element
-render json: @posts, each_serializer: PostPreviewSerializer
-
-# Or, you can explicitly provide the collection serializer as well
-render json: @posts, serializer: CollectionSerializer, each_serializer: PostPreviewSerializer
-```
-
-### Meta
-
-If you want a `meta` attribute in your response, specify it in the `render`
-call:
-
-```ruby
-render json: @post, meta: { total: 10 }
-```
-
-The key can be customized using `meta_key` option.
-
-```ruby
-render json: @post, meta: { total: 10 }, meta_key: "custom_meta"
-```
-
-`meta` will only be included in your response if you are using an Adapter that supports `root`, as JsonAPI and Json adapters, the default adapter (FlattenJson) doesn't have `root`.
-
-### Overriding association methods
-
-If you want to override any association, you can use:
-
-```ruby
-class PostSerializer < ActiveModel::Serializer
-  attributes :id, :body
-
-  has_many :comments
-
-  def comments
-    object.comments.active
-  end
-end
-```
-
-### Overriding attribute methods
-
-If you want to override any attribute, you can use:
-
-```ruby
-class PostSerializer < ActiveModel::Serializer
-  attributes :id, :body
-
-  has_many :comments
-
-  def body
-    object.body.downcase
-  end
-end
-```
-
-### Built in Adapters
-
-#### FlattenJSON
-
-It's the default adapter, it generates a json response without a root key.
-Doesn't follow any specifc convention.
-
-#### JSON
-
-It also generates a json response but always with a root key. The root key **can't be overridden**, and will be automatically defined accordingly with the objects being serialized.
-Doesn't follow any specifc convention.
-
-#### JSONAPI
-
-This adapter follows 1.0 of the format specified in
-[jsonapi.org/format](http://jsonapi.org/format). It will include the associated
-resources in the `"included"` member when the resource names are included in the
-`include` option.
-
-```ruby
-  render @posts, include: ['authors', 'comments']
-  # or
-  render @posts, include: 'authors,comments'
-```
+## About
 
 ## Installation
 
-Add this line to your application's Gemfile:
-
-```
-gem 'active_model_serializers'
-```
-
-And then execute:
-
-```
-$ bundle
-```
-
-## Creating a Serializer
-
-The easiest way to create a new serializer is to generate a new resource, which
-will generate a serializer at the same time:
-
-```
-$ rails g resource post title:string body:string
-```
-
-This will generate a serializer in `app/serializers/post_serializer.rb` for
-your new model. You can also generate a serializer for an existing model with
-the serializer generator:
-
-```
-$ rails g serializer post
-```
-
-The generated seralizer will contain basic `attributes` and
-`has_many`/`has_one`/`belongs_to` declarations, based on the model. For example:
-
-```ruby
-class PostSerializer < ActiveModel::Serializer
-  attributes :title, :body
-
-  has_many :comments
-  has_one :author
-
-  url :post
-end
-```
-
-and
-
-```ruby
-class CommentSerializer < ActiveModel::Serializer
-  attributes :name, :body
-
-  belongs_to :post_id
-
-  url [:post, :comment]
-end
-```
-
-The attribute names are a **whitelist** of attributes to be serialized.
-
-The `has_many`, `has_one`, and `belongs_to` declarations describe relationships between
-resources. By default, when you serialize a `Post`, you will get its `Comments`
-as well.
-
-You may also use the `:serializer` option to specify a custom serializer class, for example:
-
-```ruby
-  has_many :comments, serializer: CommentPreviewSerializer
-```
-
-And you can change the JSON key that the serializer should use for a particular association:
-
-```ruby
-  has_many :comments, key: :reviews
-```
-
-The `url` declaration describes which named routes to use while generating URLs
-for your JSON. Not every adapter will require URLs.
-## Pagination
-
-Pagination links will be included in your response automatically as long as the resource is paginated using [Kaminari](https://github.com/amatsuda/kaminari) or [WillPaginate](https://github.com/mislav/will_paginate) and if you are using a ```JSON-API``` adapter.
-
-Although the others adapters does not have this feature, it is possible to implement pagination links to `JSON` adapter. For more information about it, please see in our docs [How to add pagination links](https://github.com/rails-api/active_model_serializers/blob/master/docs/howto/add_pagination_links.md)
-
-## Caching
-
-To cache a serializer, call ```cache``` and pass its options.
-The options are the same options of ```ActiveSupport::Cache::Store```, plus
-a ```key``` option that will be the prefix of the object cache
-on a pattern ```"#{key}/#{object.id}-#{object.updated_at}"```.
-
-The cache support is optimized to use the cached object in multiple request. An object cached on a ```show``` request will be reused at the ```index```. If there is a relationship with another cached serializer it will also be created and reused automatically.
-
-**[NOTE] Every object is individually cached.**
-
-**[NOTE] The cache is automatically expired after update an object but it's not deleted.**
-
-```ruby
-cache(options = nil) # options: ```{key, expires_in, compress, force, race_condition_ttl}```
-```
-
-Take the example bellow:
-
-```ruby
-class PostSerializer < ActiveModel::Serializer
-  cache key: 'post', expires_in: 3.hours
-  attributes :title, :body
-
-  has_many :comments
-
-  url :post
-end
-```
-
-On this example every ```Post``` object will be cached with
-the key ```"post/#{post.id}-#{post.updated_at}"```. You can use this key to expire it as you want,
-but in this case it will be automatically expired after 3 hours.
-
-### Fragmenting Caching
-
-If there is some API endpoint that shouldn't be fully cached, you can still optimise it, using Fragment Cache on the attributes and relationships that you want to cache.
-
-You can define the attribute by using ```only``` or ```except``` option on cache method.
-
-**[NOTE] Cache serializers will be used at their relationships**
-
-Example:
-
-```ruby
-class PostSerializer < ActiveModel::Serializer
-  cache key: 'post', expires_in: 3.hours, only: [:title]
-  attributes :title, :body
-
-  has_many :comments
-
-  url :post
-end
-```
+## Getting Started
 
 ## Getting Help
 
-If you find a bug, please report an [Issue](https://github.com/rails-api/active_model_serializers/issues/new).
+If you find a bug, please report an [Issue](https://github.com/rails-api/active_model_serializers/issues/new)
+and see our [contributing guide](CONTRIBUTING.md).
 
 If you have a question, please [post to Stack Overflow](http://stackoverflow.com/questions/tagged/active-model-serializers).
 
+If you'd like to chat, we have a [community slack](http://amserializers.herokuapp.com).
+
 Thanks!
 
-# Contributing
+## Documentation
 
-See [CONTRIBUTING.md](https://github.com/rails-api/active_model_serializers/blob/master/CONTRIBUTING.md)
+If you're reading this at https://github.com/rails-api/active_model_serializers you are
+reading documentation for our `master`, which is not yet released.
+
+Please see below for the documentation relevant to you.
+
+- [0.10 (0-10-stable) Documentation](https://github.com/rails-api/active_model_serializers/tree/0-10-stable)
+- [0.10.6 (latest release) Documentation](https://github.com/rails-api/active_model_serializers/tree/v0.10.6)
+  - [![API Docs](http://img.shields.io/badge/yard-docs-blue.svg)](http://www.rubydoc.info/gems/active_model_serializers/0.10.6)
+  - [Guides](https://github.com/rails-api/active_model_serializers/tree/v0.10.6/docs)
+- [0.9 (0-9-stable) Documentation](https://github.com/rails-api/active_model_serializers/tree/0-9-stable)
+  - [![API Docs](http://img.shields.io/badge/yard-docs-blue.svg)](http://www.rubydoc.info/github/rails-api/active_model_serializers/0-9-stable)
+- [0.8 (0-8-stable) Documentation](https://github.com/rails-api/active_model_serializers/tree/0-8-stable)
+  - [![API Docs](http://img.shields.io/badge/yard-docs-blue.svg)](http://www.rubydoc.info/github/rails-api/active_model_serializers/0-8-stable)
+
+
+## Status of AMS
+
+*Status*:
+
+- ❗️ All existing PRs against master will need to be closed and re-opened against 0-10-stable, if so desired
+- ❗️ Master, for the moment, won't have any released version of AMS on it.
+
+*Changes to 0.10.x maintenance*:
+
+- The 0.10.x version has become a huge maintenance version.  We had hoped to get it in shape for a 1.0 release, but it is clear that isn't going to happen.  Almost none of the maintainers from 0.8, 0.9, or earlier 0.10 are still working on AMS. We'll continue to maintain 0.10.x on the 0-10-stable branch, but maintainers won't otherwise be actively developing on it
+  - We may choose to make a 0.11.x ( 0-11-stable) release based on 0-10-stable that just removes the deprecations.
+
+*What's happening to AMS*:
+
+- There's been a lot of churn around AMS since it began back in [Rails 3.2](CHANGELOG-prehistory.md) and a lot of new libraries are around and the JSON:API spec has reached 1.0.
+- If there is to be a 1.0 release of AMS, it will need to address the general needs of serialization in much the way ActiveJob can be used with different workers.
+- The next major release *is* in development. We're starting simple and avoiding, at least at the outset, all the complications in AMS version, especially all the implicit behavior from guessing the serializer, to the association's serializer, to the serialization type, etc.
+- The basic idea is that models to serializers are a one to many relationship.  Everything will need to be explicit.  If you want to serialize a User with a UserSerializer, you'll need to call it directly.  The serializer will essentially be for defining a basic JSON:API resource object: id, type, attributes, and relationships. The serializer will have an as_json method and can be told which fields (attributes/relationships) to serialize to JSON and will likely *not* know serialize any more than the relations id and type.  Serializing anything more about the relations would require code that called a serializer. (This is still somewhat in discussion).
+- If this works out, the idea is to get something into Rails that existing libraries can use.
+
+See [PR 2121](https://github.com/rails-api/active_model_serializers/pull/2121) where these changes were introduced for more information and any discussion.
+
+## High-level behavior
+
+## Architecture
+
+## Semantic Versioning
+
+This project adheres to [semver](http://semver.org/)
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md)
